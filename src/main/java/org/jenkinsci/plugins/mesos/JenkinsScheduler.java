@@ -329,7 +329,7 @@ public class JenkinsScheduler implements Scheduler {
 
             final Timer.Context offerContext = Metrics.metricRegistry().timer("mesos.scheduler.offer.processing.time").time();
             try {
-                if (requests.isEmpty() && !buildsInQueue(Jenkins.getInstance().getQueue())) {
+                if (requests.isEmpty() && !buildsInQueue(getJenkins().getQueue())) {
                     unmatchedLabels.clear();
                     // Decline offer for a longer period if no slave is waiting to get spawned.
                     // This prevents unnecessarily getting offers every few seconds and causing
@@ -778,7 +778,10 @@ public class JenkinsScheduler implements Scheduler {
         request.request.mesosSlave.provisionedToMesos();
         LOGGER.info(String.format("Slave %s now being provisioned by Mesos", request.request.mesosSlave.getUuid()));
 
-        driver.launchTasks(offer.getId(), tasks, filters);
+        List<OfferID> offers = new ArrayList<>();
+        offers.add(offer.getId());
+
+        driver.launchTasks(offers, tasks, filters);
 
         results.put(taskId, new Result(request.result, new Mesos.JenkinsSlave(offer.getSlaveId()
                 .getValue())));
@@ -787,7 +790,7 @@ public class JenkinsScheduler implements Scheduler {
 
     @NonNull
     private static Jenkins getJenkins() {
-        Jenkins jenkins = Jenkins.getInstance();
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins == null) {
             throw new IllegalStateException("Jenkins is null");
         }
